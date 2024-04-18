@@ -1,0 +1,223 @@
+---
+title: "SDS 315 HW 9"
+author: "Jana Kassem"
+date: "2024-04-16"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+EID: jmk4958
+
+Github: <https://github.com/Janakass3m/SDS-315-HW-9>.
+
+
+# 1
+
+
+```{r echo=FALSE, warning=FALSE, include=FALSE}
+library(dplyr)
+library(mosaic)
+library(ggplot2)
+turnout <- read.csv("turnout.csv")
+```
+
+### Part A
+
+```{r echo=FALSE, warning=FALSE, include =FALSE}
+prop(voted1998 ~ GOTV_call, data=turnout, success=1)
+prop.test(voted1998 ~ GOTV_call, data=turnout, success=1)
+
+```
+
+The proportion of those who received a GOTV call who voted in 1998 is .6478.
+The proportion of those not receiving a GOTV call who voted in 1998 is .4442.
+The 95% confidence interval for the difference in proportions of those who voted but didn't receive a call versus those who did is -.2659 and -.1411.
+
+
+
+
+### Part B
+
+#### Age as a confounder
+```{r echo=FALSE, warning=FALSE}
+mean(AGE ~ GOTV_call + voted1998, data=turnout)
+
+ggplot(turnout, aes(x = factor(voted1998), y = AGE, fill = factor(voted1998))) +
+  geom_boxplot() +
+  labs(title = "Age Distribution by Voting in 1998",
+       x = "Voted in 1998",
+       y = "Age") +
+  theme_minimal()
+
+ggplot(turnout, aes(x = factor(GOTV_call), y = AGE, fill= factor(GOTV_call))) +
+  geom_boxplot() +
+  labs(title = "Age Distribution by GOTV Call",
+       x = "GOTV Call",
+       y = "Age") +
+  theme_minimal()
+```
+
+#### Voted in 1996 as a confounder
+```{r echo=FALSE, warning=FALSE}
+mean(voted1996 ~ GOTV_call + voted1998, data=turnout)
+
+ggplot(turnout, aes(x = factor(voted1996), fill = factor(GOTV_call))) +
+  geom_bar(position = "fill") +
+  labs(title = "Proportion of GOTV Calls by Voting in 1996",
+       x = "Voted in 1996",
+       y = "Proportion of GOTV Calls",
+       fill = "GOTV Call") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme_minimal()
+
+ggplot(turnout, aes(x = factor(voted1996), fill = factor(voted1998))) +
+  geom_bar(position = "fill") +
+  labs(title = "Proportion of Voting in 1998 by Voting in 1996",
+       x = "Voted in 1996",
+       y = "Proportion of Voting in 1998",
+       fill = "Voted in 1998") +
+  scale_y_continuous(labels = scales::percent_format()) +  # Convert y-axis to percentage
+  theme_minimal()
+```
+
+#### Major party as a confounder
+```{r echo=FALSE, warning=FALSE}
+mean(MAJORPTY ~ GOTV_call + voted1998, data=turnout)
+
+ggplot(turnout, aes(x = factor(GOTV_call), fill = factor(MAJORPTY))) +
+  geom_bar(position = "fill") +
+  labs(title = "Proportion of Major Party Registration by GOTV Call",
+       x = "GOTV Call",
+       y = "Proportion of Major Party Registration",
+       fill = "Major Party Registration") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme_minimal()
+
+ggplot(turnout, aes(x = factor(MAJORPTY), fill = factor(voted1998))) +
+  geom_bar(position = "fill") +
+  labs(title = "Proportion of Voting in 1998 by Major Party Registration",
+       x = "Major Party Registration",
+       y = "Proportion of Voting in 1998",
+       fill = "Voted in 1998") +
+  scale_y_continuous(labels = scales::percent_format()) +  # Convert y-axis to percentage
+  theme_minimal()
+```
+
+It seems that there are differences in the mean age and proportions of voted1996 and MAJORPTY across different groups defined by GOTV_call and voted1998. This suggests that these variables may indeed be confounders, as they are associated with both GOTV_call and voted1998. People who vote are usually older meaning they are more likely to get a call. It is also more likely for people to vote in 1998 if they had previously voted in 1996. This means they might be less likely to get a call because the callers already believe they are going to vote. People are also more likely to vote if they are registered with a major party. 
+
+### Part C
+
+```{r echo=FALSE, warning=FALSE}
+library(MatchIt)
+
+matched = matchit(GOTV_call ~ AGE + voted1996 + MAJORPTY,
+                                 data = turnout, ratio=5) %>%
+    match.data
+```
+#### Age not confounding
+```{r echo=FALSE, warning=FALSE}
+mean(AGE ~ GOTV_call, data=matched)
+
+ggplot(matched, aes(x = factor(GOTV_call), y = AGE, fill= factor(GOTV_call))) +
+  geom_boxplot() +
+  labs(title = "Age Distribution by GOTV Call",
+       x = "GOTV Call",
+       y = "Age") +
+  theme_minimal()
+
+```
+
+#### Voted in 1996 not confounding
+```{r echo=FALSE, warning=FALSE}
+mean(voted1996 ~ GOTV_call, data=matched)
+
+ggplot(matched, aes(x = factor(GOTV_call), fill = factor(voted1996))) +
+  geom_bar(position = "fill") +
+  labs(title = "Proportion of GOTV Calls by Voting in 1996",
+       x = "GOTV call",
+       y = "Proportion of GOTV Calls",
+       fill = "voted in 1996") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme_minimal()
+```
+
+#### Major party not confounding
+```{r echo=FALSE, warning=FALSE}
+mean(MAJORPTY ~ GOTV_call, data=matched)
+
+ggplot(matched, aes(x = factor(GOTV_call), fill = factor(MAJORPTY))) +
+  geom_bar(position = "fill") +
+  labs(title = "Proportion of Major Party Registration by GOTV Call",
+       x = "GOTV Call",
+       y = "Proportion of Major Party Registration",
+       fill = "Major Party Registration") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme_minimal()
+```
+```{r echo=FALSE, warning=FALSE, include=FALSE}
+
+prop(voted1998 ~ GOTV_call, data=matched, success=1)
+prop.test(voted1998 ~ GOTV_call, data=matched, success=1)
+
+
+
+```
+
+The proportion of those who received a GOTV call who voted in 1998 is .6478.
+The proportion of those not receiving a GOTV call who voted in 1998 is .5741.
+
+The 95% confidence interval for the difference in proportions of voted1998 between those who received a GOTV call and those who didn't is between -0.1418 and -0.0056. Since this confidence interval does not include zero, I am 95% confident that the difference in proportions is statistically significant at the 5% level.
+
+Therefore, based on these results, it can be concluded that receiving a GOTV call is associated with a higher likelihood of voting in the 1998 election.
+
+
+# 2
+
+```{r echo=FALSE, warning=FALSE}
+solder <- read.csv("solder.csv")
+```
+
+### Part A
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(solder, aes(x = Opening, y = skips)) +
+  geom_boxplot() +
+  labs(title = "Relationship between Opening Size and Skips",
+       x = "Opening Size",
+       y = "Skips") + theme_classic()
+
+ggplot(solder, aes(x = Solder, y = skips)) +
+  geom_boxplot() +
+  labs(title = "Relationship between Solder Thickness and Skips",
+       x = "Solder Thickness",
+       y = "Skips") +theme_classic()
+```
+
+The first graph shows the effect opening size has on the number of skips. It can be seen from the first graph that opening size has an impact on the number of skips. This can be seen as the smaller the size gets the higher number of skips are produced. The second graph shows the relationship between solder thickness and the number of skips. It can be seen that a thin solder produces more skips on average than a thick solder. 
+
+### Part B
+
+```{r echo=FALSE, warning=FALSE}
+model = lm(skips ~ Solder + Opening + Solder:Opening, data=solder)
+
+coef <- coef(model)
+interval <- confint(model)
+
+table <- cbind(coef, interval)
+colnames(table) <- c("Estimate", "2.5%", "97.5%")
+
+knitr::kable(table)
+```
+
+### Part C
+
+The estimated number of skips when all other predictors are 0 is .39. The estimated effect of using thin solder versus thick solder on the number of skips is 2.28. The estimated effect of having a medium opening size versus small and large on the number of skips is 2.41. The estimated effect of having a small opening size versus large and medium on the number of skips is 5.13.  The estimated effect of the interaction between using thin solder and having a medium opening size on the number of skips is -0.74.The estimated effect of the interaction between using thin solder and having a large opening size on the number of skips is 9.65.
+
+### Part D
+
+The best combination is a thin solder with a medium opening because it has a negative estimate meaning it most likely decreases the number of skips. Although it's confidence interval contains 0 it is still practically significant as both of these factors separately have lower confidence intervals meaning they will not impact the number of skips as much as other factors. Therefore, although not statistically significant, this combination may still warrant consideration for further investigation or experimentation, given its potential practical significance 
